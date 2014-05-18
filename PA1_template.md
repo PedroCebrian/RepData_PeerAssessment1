@@ -53,20 +53,76 @@ The following code calculates the mean and median of the total number of steps p
 
 
 ```r
-mean <- round(mean(totalSteps$steps))
+mean <- round(mean(totalSteps$steps), 2)
 median <- median(totalSteps$steps)
 ```
 
-The average number of steps taken per day is 9354 and the median number of step is 1.0395 &times; 10<sup>4</sup>.
-
-
+The average number of steps taken per day is 9354.23 and the median number of steps is 1.0395 &times; 10<sup>4</sup>.
 
 
 ## What is the average daily activity pattern?
 
+This code calculates the average number of steps per interval accross all days and shows a time series plot of the results
+
+
+```r
+avStepsPerInterval <- tapply(data$steps, data$interval, mean, na.rm = T)
+avStepsPerInterval <- data.frame(steps = avStepsPerInterval, interval = as.integer(levels(data$interval)))
+avStepsPerInterval <- avStepsPerInterval[order(avStepsPerInterval$interval), 
+    ]
+with(avStepsPerInterval, {
+    plot(interval, steps, type = "l")
+})
+```
+
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6.png) 
+
 
 
 ## Imputing missing values
+
+Computing the total number of missing values.
+
+
+```r
+missing <- sum(is.na(data$steps))
+```
+
+
+The number of missing values is 2304.
+
+The strategy to fill the missing values is to include the average for that 5-minute span.
+
+
+```r
+filledData <- data
+temp <- filledData[is.na(data$steps), ]$interval
+temp <- match(as.numeric(levels(temp))[temp], avStepsPerInterval$interval)
+filledData[is.na(data$steps), ]$steps <- avStepsPerInterval[temp, ]$steps
+```
+
+
+Calculate a histogram of the total number of steps taken each day.
+
+```r
+mdata2 <- melt(filledData, id = c("interval", "date"))
+totalSteps2 <- dcast(mdata2, date ~ variable, sum, na.rm = T)
+hist(totalSteps2$steps, breaks = 20, col = "blue", main = "Histogram of total number of steps per day", 
+    xlab = "Number of steps")
+```
+
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+
+
+The following code calculates the mean and median of the total number of steps per day.
+
+
+```r
+mean <- round(mean(totalSteps2$steps), 2)
+median <- median(totalSteps2$steps)
+```
+
+The average number of steps taken per day is 1.0766 &times; 10<sup>4</sup> and the median number of steps is 1.0766 &times; 10<sup>4</sup>.
 
 
 
