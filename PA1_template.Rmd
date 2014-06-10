@@ -9,6 +9,7 @@ The data is located inside a compressed file "activity.zip". The first task is t
 fname <- "activity.zip"
 con <- unz(fname, "activity.csv")
 data <- read.csv(con, colClasses=c("numeric","character","character"))
+unlink(con)
 ```
 
 After loading the data we transform the interval column into a factor and the date column into R dates objects. This is the best option to perform subsequent analyses.
@@ -60,6 +61,16 @@ avStepsPerInterval <- avStepsPerInterval[order(avStepsPerInterval$interval),]
 with(avStepsPerInterval, {plot(interval, steps, type="l")})
 ```
 
+We need to calculate the interval with the maximum number of steps on average an generate the adequate string.
+
+```{r}
+maxInterval <- with(avStepsPerInterval,{interval[which.max(steps)]})
+maxInterval <- sprintf("%02d:%02d", maxInterval%/%100, maxInterval%%100)
+
+```
+
+The 5-minute interval with the maximum number of step on average starts at `r maxInterval`.
+
 
 ## Imputing missing values
 
@@ -100,3 +111,26 @@ The average number of steps taken per day is `r mean` and the median number of s
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+First we create a factor variable to indicate whether a given date is a weekday or weekend day.
+
+```{r}
+temp <- weekdays(filledData$date) %in% c("sabado", "domingo")
+filledData$weekday <- ifelse(temp,"weekend","weekday")
+filledData <- transform(filledData, weekday = as.factor(weekday))
+```
+
+
+Afterwards, we average accross all intervals taking into account if it is a weekday or weekend and plot the results.
+
+
+```{r fig.width=12}
+weekdayAvg <- with(filledData, {aggregate(steps, list(weekday, interval), mean)})
+names(weekdayAvg) <- c("day", "interval", "stepsAvg")
+weekdayAvg <- transform(weekdayAvg, interval=as.integer(levels(data$interval)))
+weekdayAvg <- weekdayAvg[order(weekdayAvg$interval),]
+library(ggplot2)
+qplot(interval, stepsAvg, data=weekdayAvg, color=day)
+```
+
+We can observe that during weekdays there is more activity about the interval 600 which is consistent with the fact that during weekdays people must go to work. Meanwhile, during the day there appears to be more activity during weekends because people are not usually at work.

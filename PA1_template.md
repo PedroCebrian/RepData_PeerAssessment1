@@ -10,6 +10,7 @@ The data is located inside a compressed file "activity.zip". The first task is t
 fname <- "activity.zip"
 con <- unz(fname, "activity.csv")
 data <- read.csv(con, colClasses = c("numeric", "character", "character"))
+unlink(con)
 ```
 
 
@@ -78,6 +79,19 @@ with(avStepsPerInterval, {
 ![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6.png) 
 
 
+We need to calculate the interval with the maximum number of steps on average an generate the adequate string.
+
+
+```r
+maxInterval <- with(avStepsPerInterval, {
+    interval[which.max(steps)]
+})
+maxInterval <- sprintf("%02d:%02d", maxInterval%/%100, maxInterval%%100)
+```
+
+
+The 5-minute interval with the maximum number of step on average starts at 08:35.
+
 
 ## Imputing missing values
 
@@ -111,7 +125,7 @@ hist(totalSteps2$steps, breaks = 20, col = "blue", main = "Histogram of total nu
     xlab = "Number of steps")
 ```
 
-![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10.png) 
 
 
 The following code calculates the mean and median of the total number of steps per day.
@@ -127,3 +141,34 @@ The average number of steps taken per day is 1.0766 &times; 10<sup>4</sup> and t
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+First we create a factor variable to indicate whether a given date is a weekday or weekend day.
+
+
+```r
+temp <- weekdays(filledData$date) %in% c("sabado", "domingo")
+filledData$weekday <- ifelse(temp, "weekend", "weekday")
+filledData <- transform(filledData, weekday = as.factor(weekday))
+```
+
+
+
+Afterwards, we average accross all intervals taking into account if it is a weekday or weekend and plot the results.
+
+
+
+```r
+weekdayAvg <- with(filledData, {
+    aggregate(steps, list(weekday, interval), mean)
+})
+names(weekdayAvg) <- c("day", "interval", "stepsAvg")
+weekdayAvg <- transform(weekdayAvg, interval = as.integer(levels(data$interval)))
+weekdayAvg <- weekdayAvg[order(weekdayAvg$interval), ]
+library(ggplot2)
+qplot(interval, stepsAvg, data = weekdayAvg, color = day)
+```
+
+![plot of chunk unnamed-chunk-13](figure/unnamed-chunk-13.png) 
+
+
+We can observe that during weekdays there is more activity about the interval 600 which is consistent with the fact that during weekdays people must go to work. Meanwhile, during the day there appears to be more activity during weekends because people are not usually at work.
